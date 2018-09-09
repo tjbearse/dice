@@ -27,7 +27,7 @@ def getDamage(dmgDice, dmgConst):
         elif outcome == "hit":
             return hit
         else:
-            return 0
+            return dice.c(0)
     return damage
 
 

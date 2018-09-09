@@ -15,7 +15,6 @@ def printResults(results, implNames):
     row_format ="{:>20}" + "{:>10}" * len(implNames)
     print(row_format.format("", *implNames))
     for row in results:
-        # print(row)
         print(row_format.format(*row))
 
 poolSize = 10
@@ -30,7 +29,8 @@ tests = [
 impls = [
     (diceNp.DictDie, "dict"),
     (diceNp.DictDieDivide, "divide"),
-    (diceNp.DictDieCache, "cache")
+    (diceNp.DictDieCache, "cache"),
+    (diceNp.ArrayDie, "array"),
     #, dice.Die]: 
     ]
 results = ([testName] + [timeThis(t,d) for d,iname in impls] for testName, t in tests)
