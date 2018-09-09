@@ -63,22 +63,4 @@ def hammerAvg():
 
     plt.show()
 
-def hammerAvg():
-    hammer = lambda ac: (
-        dice.d(20).map(getToHit(ac, 7, dice.d(10), 6)) +
-        dice.d(20).map(getToHit(ac, 7, dice.d(10), 6))
-    )
-    dmg = [ hammer(ac).avg() for ac in range(12, 22) ]
-    acs = list(range(12,22))
-
-    ax = plt.subplot()
-    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-
-    print(acs, dmg)
-    ax.step(acs, dmg, where='mid')
-    ax.margins(0.05)
-    ax.axis('tight')
-
-    plt.show()
-
 hammerAvg()

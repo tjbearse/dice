@@ -9,6 +9,13 @@ class TestOutcomeMethods(unittest.TestCase):
         self.assertEqual(c.prob, 3)
         self.assertEqual(c.val, 6)
 
+    def test_combine(self):
+        a = Outcome[int](1,2)
+        b = Outcome[float](3,4)
+        c = a.combine(lambda x,y: float(x)/y, b)
+        self.assertEqual(c.prob, 3)
+        self.assertEqual(c.val, .5)
+
 class TestDiceMethods(unittest.TestCase):
 
     def test_add(self):

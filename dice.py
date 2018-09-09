@@ -2,53 +2,47 @@
 import copy
 import math
 from fractions import Fraction
-
-"""
-
-2d6 -> roll 2 d6, sum them
-
-1@2d6 -> roll 2 d6, take the larger
-2@2d6 -> roll 2 d6, take the larger
+import typing
 
 
-"""
-
-# does limiting probabilities to the numerator reduce complexity?
-# can that be done and be valid?
-
-class Outcome(object):
-    def __init__(self, p, v):
+T = typing.TypeVar('T', bool, int)
+B = typing.TypeVar('B', bool, int)
+class Outcome(typing.Generic[T]):
+    def __init__(self, p, v:T) -> None:
         if type(p) is not Fraction:
             p = Fraction(p)
         self.prob = p
-        self.val = v
+        self.val : T = v
     def __str__(self):
         return "({} {:.02%})".format(self.val, float(self.prob))
     def __repr__(self):
         return "({} {:.02%})".format(self.val, float(self.prob))
-    def __add__(self, o):
-        return self.combine(lambda x,y: x+y, o)
 
-    def combine(self, fn, o):
-        return Outcome(self.prob * o.prob, fn(self.val, o.val))
+    def __add__(self, o: 'Outcome') -> 'Outcome':
+        add = lambda x,y: x+y
+        return self.combine(add, o)
 
-class Die(object):
-    def __init__(self, outcomes=[]):
+    def combine(self, fn: typing.Callable[[T,B], typing.Any], o: 'Outcome[B]') -> 'Outcome':
+        v = fn(self.val, o.val)
+        return Outcome(self.prob * o.prob, v)
+
+class Die(typing.Generic[T]):
+    def __init__(self, outcomes:typing.List[Outcome[T]]=[]) -> None:
         if type(outcomes) != list:
             raise TypeError("wrong type passed to Die constructor")
-        self.outcomes = self._cleanupOutcomes(outcomes)
+        self.outcomes : typing.List[Outcome[T]] = self._cleanupOutcomes(outcomes)
 
-    def map(self, fn):
-        # res = []
-        # for o in self.outcomes:
-        outcomes = []
+    def map(self, fn:typing.Callable[[T], typing.Union['Die[B]', B]]) -> 'Die[B]':
+        outcomes : typing.List[Outcome[B]] = []
         for o in self.outcomes:
             v = fn(o.val)
             if type(v) == Die:
                 scaled = map(lambda o2: Outcome(o2.prob * o.prob, o2.val), v.outcomes)
                 outcomes.extend(scaled)
             else:
-                outcomes.append(Outcome(o.prob, v))
+                v = typing.cast(B, v)
+                o1 = Outcome(o.prob, v)
+                outcomes.append(o1)
         return Die(outcomes)
     
     def __add__(self, die):
