@@ -65,3 +65,19 @@ class TestDicePoolMethods(TestDicePackage):
         x,y = c.pmf()
         self.assertArrEqual(x, [2, 3, 4])
         self.assertArrEqual(y, [.25, .5, .25])
+
+class TestDicePoolMethodsDivide(TestDicePoolMethods):
+    def setUp(self):
+       self.dice = diceNp.DictDieDivide
+       self.assertArrEqual = npt.assert_array_equal
+    
+class TestDiceMethodsDivide(TestDiceMethods):
+    def setUp(self):
+       self.dice = diceNp.DictDieDivide
+       self.assertArrEqual = npt.assert_array_equal
+    
+
+class TestDiceCache(TestDicePoolMethods, TestDiceMethods):
+    def setUp(self):
+       self.dice = diceNp.DictDieCache
+       self.assertArrEqual = npt.assert_array_equal

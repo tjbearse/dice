@@ -6,23 +6,42 @@ from samples import getToHit, getDamage
 
 diceImpl : typing.Any
 
-def timeThis(l, s):
-    print(l, "\t", timeit.timeit(s, number=100, globals=globals()))
-
-poolSize = 3
-
-for d in [diceNp.DictDie, dice.Die]: 
+def timeThis(s, d):
+    global diceImpl
     diceImpl = d
-    print("start")
-    timeThis("d20 init x2", 'diceImpl.d(20), diceImpl.d(20)')
-    timeThis("d20 add", 'diceImpl.d(20) + diceImpl.d(20)')
-    timeThis("d20 add via pool", 'diceImpl.d(20).pool(2).sum()')
+    return "{:.4f}".format(timeit.timeit(s, number=100, globals=globals()))
 
-    timeThis("d20 best", 'diceImpl.d(20).pool(2).best()')
+def printResults(results, implNames):
+    row_format ="{:>20}" + "{:>10}" * len(implNames)
+    print(row_format.format("", *implNames))
+    for row in results:
+        # print(row)
+        print(row_format.format(*row))
 
-    timeThis("gauntlet", 'diceImpl.d(20).pool(2).best().map(getToHit(15, 7)).map(getDamage(diceImpl.d(10), 6))')
+poolSize = 10
+tests = [
+    ("d20 init x2", 'diceImpl.d(20), diceImpl.d(20)'),
+    ("d20 add", 'diceImpl.d(20) + diceImpl.d(20)'),
+    ("d20 add via pool", 'diceImpl.d(20).pool(2).sum()'),
+    ("d20 best", 'diceImpl.d(20).pool(2).best()'),
+    ("gauntlet", 'diceImpl.d(20).pool(2).best().map(getToHit(15, 7)).map(getDamage(diceImpl.d(10), 6))'),
+]
 
-    print("\n\nlarge pools")
-    timeThis("best", 'diceImpl.d(20).pool({}).best()'.format(poolSize))
-    timeThis("sum", 'diceImpl.d(20).pool({}).sum()'.format(poolSize))
-    print("stop")
+impls = [
+    (diceNp.DictDie, "dict"),
+    (diceNp.DictDieDivide, "divide"),
+    (diceNp.DictDieCache, "cache")
+    #, dice.Die]: 
+    ]
+results = ([testName] + [timeThis(t,d) for d,iname in impls] for testName, t in tests)
+printResults(results, list(map(lambda x: x[1], impls)))
+
+
+
+print("\nlarge pools")
+largeTests = [
+    ("best", 'diceImpl.d(20).pool({}).best()'.format(poolSize)),
+    ("sum", 'diceImpl.d(20).pool({}).sum()'.format(poolSize)),
+]
+results = ([testName] + [timeThis(t,d) for d,iname in impls] for testName, t in largeTests)
+printResults(results, list(map(lambda x: x[1], impls)))
