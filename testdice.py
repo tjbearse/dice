@@ -25,6 +25,13 @@ class TestDiceMethods(unittest.TestCase):
         self.assertEqual([o.prob for o in c.outcomes], [.25, .5, .25])
         self.assertEqual([o.val for o in c.outcomes], [2, 3, 4])
 
+    def test_add_const(self):
+        a = d(2)
+        b = 2
+        c = a + b
+        self.assertEqual([o.prob for o in c.outcomes], [.5, .5])
+        self.assertEqual([o.val for o in c.outcomes], [3, 4])
+
     def test_map(self):
         a = d(2)
         c = a.map(lambda v: v+2)
@@ -45,3 +52,9 @@ class TestDicePoolMethods(unittest.TestCase):
         c = p.sum()
         self.assertEqual([o.prob for o in c.outcomes], [.25, .5, .25])
         self.assertEqual([o.val for o in c.outcomes], [2, 3, 4])
+
+    def test_best(self):
+        p = d(2).pool(2)
+        c = p.best()
+        self.assertEqual([o.prob for o in c.outcomes], [.25, .75])
+        self.assertEqual([o.val for o in c.outcomes], [1,2])

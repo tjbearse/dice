@@ -4,6 +4,12 @@ import math
 from fractions import Fraction
 import typing
 
+"""
+ideas:
+ - Sequences (e.g. grapple till success followed by hit)
+ - Complex types for outcomes? i.e. game state
+ - Tracing paths / dice
+"""
 
 T = typing.TypeVar('T', bool, int)
 B = typing.TypeVar('B', bool, int)
@@ -93,8 +99,6 @@ class Die(typing.Generic[T]):
             x.reverse()
             y.reverse()
         return x,y
-        
-
 
     @staticmethod
     def d(stop, start=1):
@@ -104,7 +108,7 @@ class Die(typing.Generic[T]):
         return Die(outcomes)
 
     def pool(self, n):
-        return DicePool([ copy.deepcopy(self) for n in range(n) ])
+        return DicePool([self for n in range(n) ])
         
     @staticmethod
     def _cleanupOutcomes(outcomes):
