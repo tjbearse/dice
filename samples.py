@@ -1,8 +1,10 @@
-import dice
+import diceNp as d
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import math
 import itertools
+
+dice = d.ArrayDieDivideCache
 
 
 
@@ -81,4 +83,4 @@ def hammerAvg():
     plt.show()
 
 if __name__ == "__main__":
-    hammerAvg()
+    hammerVsAxe()

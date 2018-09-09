@@ -137,7 +137,6 @@ class DictDieCache(DictDieDivide):
         return super(DictDieCache,DictDieCache).combineAcross(fn, *dice)
 
 class ArrayDie(Die):
-    # starting distribution
     def __init__(self, val, prob):
         self.prob = np.array(prob)
         self.val = np.array(val)
@@ -157,13 +156,15 @@ class ArrayDie(Die):
         coaleseConst = lambda x: x if isinstance(x, cls) else cls.c(x)
         ensuredDice = list(map(coaleseConst, dice))
         return reduce(lambda acc, d: cls.combineAcross(fn, acc, d), ensuredDice)
+
+    # this is only performant across two dice, might fix it to that
     @classmethod
     def combineAcross(cls, fn, *dice):
         n = len(dice)
         vals = [cls.rotateShape(d.val, i, n) for i, d in enumerate(dice)]
         probs = [cls.rotateShape(d.prob, i, n) for i, d in enumerate(dice)]
-        valMatrix = fn(*vals)
-        probsMatrix = np.multiply(*probs)
+        valMatrix = reduce(fn, vals)
+        probsMatrix = reduce(np.multiply, probs)
         m = reduce(reduceToMap, zip(valMatrix.flat, probsMatrix.flat), dict())
         return cls(*zip(*m.items()))
 
@@ -189,3 +190,22 @@ class ArrayDicePool(DicePool):
         return self.aggregate(np.maximum)
     def sum(self):
         return self.aggregate(np.add)
+
+class ArrayDieDivide(ArrayDie):
+    @classmethod
+    def combine(cls, fn, *dice):
+        coaleseConst = lambda x: x if isinstance(x, cls) else cls.c(x)
+        dice = list(map(coaleseConst, dice))
+        n = 2
+        while len(dice) > 1:
+            i = iter(dice)
+            pairs = zip(*[i]*n)
+            dice = list(map(lambda p: cls.combineAcross(fn, *p), pairs))
+            dice += list(pairs)
+        return dice[0]
+
+class ArrayDieDivideCache(ArrayDieDivide):
+    @classmethod
+    @functools.lru_cache()
+    def combineAcross(cls, fn, *dice):
+        return super(ArrayDieDivideCache,ArrayDieDivideCache).combineAcross(fn, *dice)

@@ -17,7 +17,7 @@ def printResults(results, implNames):
     for row in results:
         print(row_format.format(*row))
 
-poolSize = 10
+poolSize = 20
 tests = [
     ("d20 init x2", 'diceImpl.d(20), diceImpl.d(20)'),
     ("d20 add", 'diceImpl.d(20) + diceImpl.d(20)'),
@@ -27,14 +27,18 @@ tests = [
 ]
 
 impls = [
-    (diceNp.DictDie, "dict"),
-    (diceNp.DictDieDivide, "divide"),
-    (diceNp.DictDieCache, "cache"),
+    # (diceNp.DictDie, "dict"),
+    # (diceNp.DictDieDivide, "divide"),
+    # (diceNp.DictDieCache, "cache"),
     (diceNp.ArrayDie, "array"),
+    (diceNp.ArrayDieDivide, "arrdiv"),
+    (diceNp.ArrayDieDivideCache, "arrdiv$"),
     #, dice.Die]: 
     ]
+"""
 results = ([testName] + [timeThis(t,d) for d,iname in impls] for testName, t in tests)
 printResults(results, list(map(lambda x: x[1], impls)))
+"""
 
 
 

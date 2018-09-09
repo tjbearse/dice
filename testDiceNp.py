@@ -74,11 +74,13 @@ class TestDiceMethods(TestDicePackage):
         self.assertArrEqual(x, [1,2,3,4])
         self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
 
+    """
     def test_guantlet(self):
         for i in range(3):
             a = self.dice.d(20).pool(2).best().map(getToHit(15, 7)).map(getDamage(self.dice.d(10), 6))
             x,y = a.pmf()
             print(list(x), list(y))
+    """
 
     def test_map_immutable(self):
         a = self.dice.d(2)
@@ -96,6 +98,20 @@ class TestDicePoolMethods(TestDicePackage):
         x,y = c.pmf()
         self.assertArrEqual(x, [2, 3, 4])
         self.assertArrFloatEqual(y, [.25, .5, .25])
+
+    def test_add_pool3(self):
+        p = self.dice.d(2).pool(3)
+        c = p.sum()
+        x,y = c.pmf()
+        self.assertArrEqual(x, [3, 4, 5, 6])
+        self.assertArrFloatEqual(y, np.array([1, 3, 3, 1])/8.)
+        
+    def test_add_pool5(self):
+        p = self.dice.d(3).pool(3)
+        c = p.best()
+        x,y = c.pmf()
+        self.assertArrEqual(x, [1, 2, 3])
+        self.assertArrFloatEqual(y, np.array([1, 7, 19])/27.)
 
     def test_gauntlet(self):
         p = self.dice.d(5).pool(2).best()
@@ -117,4 +133,14 @@ class TestDiceCache(TestDicePoolMethods, TestDiceMethods):
 class TestDiceArray(TestDicePoolMethods, TestDiceMethods):
     def setUp(self):
        self.dice = diceNp.ArrayDie
+       super().setUp()
+
+class TestDiceArrayDivide(TestDicePoolMethods, TestDiceMethods):
+    def setUp(self):
+       self.dice = diceNp.ArrayDieDivide
+       super().setUp()
+
+class TestDiceArrayDivideCache(TestDicePoolMethods, TestDiceMethods):
+    def setUp(self):
+       self.dice = diceNp.ArrayDieDivideCache
        super().setUp()
