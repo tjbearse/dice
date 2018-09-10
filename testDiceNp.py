@@ -6,7 +6,7 @@ from samples import getToHit, getDamage
 
 class TestDicePackage(unittest.TestCase):
     def setUp(self):
-       self.dice = diceNp.DictDie
+       self.dice = diceNp.ArrayDie
        self.assertArrEqual = npt.assert_array_equal
        self.assertArrFloatEqual = npt.assert_array_almost_equal
 
@@ -90,6 +90,13 @@ class TestDiceMethods(TestDicePackage):
         self.assertArrEqual(x, [1, 2])
         self.assertArrEqual(y, [.5, .5])
 
+    def test_combBool(self):
+        a = self.dice.d(2)
+        b = self.dice.d(2)
+        c = self.dice.combine(np.greater, a, b)
+        x,y = c.pmf()
+        self.assertArrEqual(x, [False, True])
+        self.assertArrEqual(y, [.75, .25])
 
 class TestDicePoolMethods(TestDicePackage):
     def test_add_pool(self):
@@ -99,19 +106,26 @@ class TestDicePoolMethods(TestDicePackage):
         self.assertArrEqual(x, [2, 3, 4])
         self.assertArrFloatEqual(y, [.25, .5, .25])
 
-    def test_add_pool3(self):
+    def test_add_pool2x3(self):
         p = self.dice.d(2).pool(3)
         c = p.sum()
         x,y = c.pmf()
         self.assertArrEqual(x, [3, 4, 5, 6])
         self.assertArrFloatEqual(y, np.array([1, 3, 3, 1])/8.)
         
-    def test_add_pool5(self):
+    def test_add_pool3x3(self):
         p = self.dice.d(3).pool(3)
         c = p.best()
         x,y = c.pmf()
         self.assertArrEqual(x, [1, 2, 3])
         self.assertArrFloatEqual(y, np.array([1, 7, 19])/27.)
+
+    def test_add_pool5(self):
+        p = self.dice.d(20).pool(5)
+        c = p.sum()
+        x,y = c.pmf()
+        self.assertArrEqual(x, np.array(range(5,101)))
+        # self.assertArrFloatEqual(y, [1])
 
     def test_gauntlet(self):
         p = self.dice.d(5).pool(2).best()
@@ -119,28 +133,12 @@ class TestDicePoolMethods(TestDicePackage):
         self.assertArrEqual(x, [1,2,3,4,5])
         self.assertArrFloatEqual(y, np.array([1,3,5,7,9])/25)
 
-class TestDiceDivide(TestDicePoolMethods, TestDiceMethods):
-    def setUp(self):
-       self.dice = diceNp.DictDieDivide
-       super().setUp()
-    
-
-class TestDiceCache(TestDicePoolMethods, TestDiceMethods):
-    def setUp(self):
-       self.dice = diceNp.DictDieCache
-       super().setUp()
-
-class TestDiceArray(TestDicePoolMethods, TestDiceMethods):
-    def setUp(self):
-       self.dice = diceNp.ArrayDie
-       super().setUp()
-
 class TestDiceArrayDivide(TestDicePoolMethods, TestDiceMethods):
     def setUp(self):
-       self.dice = diceNp.ArrayDieDivide
        super().setUp()
+       self.dice = diceNp.ArrayDieDivide
 
 class TestDiceArrayDivideCache(TestDicePoolMethods, TestDiceMethods):
     def setUp(self):
-       self.dice = diceNp.ArrayDieDivideCache
        super().setUp()
+       self.dice = diceNp.ArrayDieDivideCache

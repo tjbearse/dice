@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import math
 import itertools
+import numpy as np
 
-dice = d.ArrayDieDivideCache
+dice = d.ArrayDieDivide
 
 
 
@@ -48,16 +49,14 @@ def hammerVsAxe():
     ax = plt.subplot()
     ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
-    acSet = [ 15 ]
+    acSet = [12, 15, 18]
     for d, l in itertools.chain(map(hammer, acSet), map(axe, acSet)):
-        x, y = d.cmf(True)
+        x, y = d.cmf()
         ax.step(x, y, label=l, where='mid')
 
     ax.margins(0.05)
     ax.axis('tight')
     ax.legend()
-
-    plt.show()
 
 def hammerAvg():
     hammer = lambda ac, n: (
@@ -66,21 +65,107 @@ def hammerAvg():
     grapple = lambda ac, n: (
         dice.d(20).pool(2).best().map(getToHit(ac, 7)).map(getDamage(dice.d(10), 6)).pool(2*(n-1))
     )
-    n = 6
-    dmgH = [ hammer(ac, n).sum().avg() for ac in range(12, 22) ]
-    dmgG = [ grapple(ac, n).sum().avg() for ac in range(12, 22) ]
-    acs = list(range(12,22))
+    rounds = range(2,7)
+    acs = range(12,22)
+    dmgH = np.array([
+        [hammer(ac, n).sum().avg() for n in rounds]
+        for ac in acs
+    ])
+    dmgG = np.array([
+        [grapple(ac, n).sum().avg() for n in rounds]
+        for ac in acs
+    ])
+    combined = np.array([dmgG, dmgH])
+    vmin, vmax  = np.amin(combined), np.amax(combined)
 
-    ax = plt.subplot()
-    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    fig, ((ax, ax2, ax3)) = plt.subplots(3, 1, figsize=(8, 6))
+    shared = dict(ylabel="rounds", xlabel="ac", vmin=vmin, vmax=vmax)
+    matPlotTable("WarHammer", dmgH.T, acs, rounds, ax=ax, **shared)
+    im = matPlotTable("Grapple", dmgG.T, acs, rounds, ax=ax2, **shared)
+    matPlotTable("Diff", (dmgG-dmgH).T, acs, rounds, ax=ax3, **{k:shared[k] for k in ["ylabel","xlabel"]})
+    fig.tight_layout()
+    cbar_ax = fig.add_axes([0.8, 0.09, 0.05, 0.85]) # L B W H
+    fig.colorbar(im, cax=cbar_ax)
 
-    ax.step(acs, dmgH, where='mid', label="hammer")
-    ax.step(acs, dmgG, where='mid', label="grapple")
-    ax.margins(0.05)
-    ax.axis('tight')
-    ax.legend()
+def highPoolTest():
+    fig, (badax, goodax) = plt.subplots(2,1)
+    for ax, impl in ((badax, d.ArrayDieDivide), (goodax, d.DictDie)):
+        # needs a change to damage
+        base = impl.d(20).map(getToHit(12, 7)).map(getDamage(impl.d(10), 6, impl.c(0)))
+        for n in range(1,5):
+            x,y = base.pool(n).sum().pmf()
+            ax.step(x, y, label=n, where='mid')
+    plt.legend()
+    return
 
-    plt.show()
+def grapple2d():
+    grapple = lambda me, opMod: (
+        dice.combine(
+            np.greater,
+            #my roll
+            me,
+            #their roll
+            dice.d(20) + opMod
+        )
+        # dice.d(20).pool(2).best().map(getToHit(ac, 7)).map(getDamage(dice.d(10), 6)).pool(2*(n-1))
+    )
+    myModVals = ("Straight", "Rage") #, "prone S", "prone R")
+    opModVals = range(0,8)
+    reg = np.array([
+        [
+            dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod).avg(),
+            dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod).avg(),
+            # dice.combine(np.all,
+            #              dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod),
+            #              dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod),
+            # ),
+            # dice.combine(np.all,
+            #     dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod),
+            #     dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod),
+            # )
+        ]
+        for opMod in opModVals
+    ])
+    # vmin, vmax  = np.amin(combined), np.amax(combined)
+
+    fig, (axReg) = plt.subplots(1, 1, figsize=(8, 6))
+    shared = dict(xlabel="my modifier", ylabel="their modifier", fmt="{:2.1%}")
+    im = matPlotTable("Straight", reg, myModVals, opModVals, ax=axReg, **shared)
+    fig.tight_layout()
+    # cbar_ax = fig.add_axes([0.8, 0.09, 0.05, 0.85]) # L B W H
+    # fig.colorbar(im, cax=cbar_ax)
+
+def matPlotTable(title, data, x, y,
+                 fmt="{:2.0f}", ax=None, xlabel="x", ylabel="y", vmin=None, vmax=None):
+    if ax is None:
+        _, ax = plt.subplots()
+    im = ax.imshow(data, cmap="viridis", interpolation=None,
+              vmin=vmin, vmax=vmax
+    )
+    ax.set_title(title, loc="right")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    # We want to show all ticks...
+    ax.set_xticks(np.arange(len(x)))
+    ax.set_yticks(np.arange(len(y)))
+    # ... and label them with the respective list entries
+    ax.set_xticklabels(x)
+    ax.set_yticklabels(y)
+
+    kw = dict(ha="center", va="center", color="w")
+    threshold = im.norm(data.max())/2.
+    textcolors = ["w", "k"]
+    # Loop over data dimensions and create text annotations.
+    for i in range(len(x)):
+        for j in range(len(y)):
+            kw.update(color=textcolors[int(im.norm(data[j, i]) > threshold)])
+            text = ax.text(i, j, fmt.format(data[j, i]), **kw)
+
+    return im
 
 if __name__ == "__main__":
-    hammerVsAxe()
+    #hammerVsAxe()
+    #hammerAvg()
+    grapple2d()
+    plt.show()

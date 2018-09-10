@@ -22,6 +22,8 @@ class Die(object):
         return DicePool([self for n in range(n)])
     def pmf(self):
         pass
+    def adv(self):
+        return self.pool(2).best()
     @classmethod
     def d(cls, stop, start=1):
         # n = stop - start + 1
@@ -34,6 +36,7 @@ class Die(object):
 
 class DicePool(object):
     def __init__(self, dice):
+        assert(len(dice) > 0)
         self.dice = dice
     def best(self):
         return self.aggregate(max)
@@ -42,57 +45,6 @@ class DicePool(object):
     def aggregate(self, fn):
         return self.dice[0].combine(fn, *self.dice)
 
-class DictDie(Die):
-    def __init__(self, val, prob):
-        self.dict = { v: p for v,p in zip(val, prob) }
-    def map(self, fn):
-        update = map(lambda x: (fn(x[0]), x[1]), self.dict.items())
-        m = reduce(reduceDieOrPairToMap, update, dict())
-        return type(self)(*zip(*m.items()))
-    def __add__(self, d):
-        return self.combine(sum, self, d)
-    @classmethod
-    def combine(cls, fn, *dice):
-        return reduce(lambda acc, d: cls.combineAcross(fn, acc, d), dice)
-
-    @classmethod
-    def combineAcross(cls, fn, *dice):
-        coaleseConst = lambda x: x if isinstance(x, cls) else cls.c(x)
-        getItems = lambda x: coaleseConst(x).dict.items()
-        diceVals = map(getItems, dice)
-        cross = itertools.product(*diceVals)
-        transposed = transpose(cross)
-        pairIter = applyPermOp(fn, transposed)
-        m = reduce(reduceToMap, pairIter, dict())
-        return cls(*zip(*m.items()))
-
-        
-    def pmf(self):
-        x,y = zip(*self.dict.items())
-        return list(x), list(y)
-def transpose(permIter):
-    # iter for (v,p),(v,p)...
-    return map(
-        lambda perm: (
-            tuple(map(lambda pair: pair[0], perm)),
-            tuple(map(lambda pair: pair[1], perm))
-        ),
-        permIter
-    )
-def applyPermOp(fn, permIter):
-    return map(lambda pair: (fn(pair[0]), prod(pair[1])), permIter)
-
-def reduceDieOrPairToMap(acc, pair):
-    v, p = pair
-    if isinstance(v, DictDie):
-        return reduce(reduceToMap, map(lambda x: (x[0], x[1]*p), v.dict.items()), acc)
-        # scale
-        # add to acc
-        # cont
-    else:
-        return reduceToMap(acc, pair)
-        
-
 def reduceToMap(acc, pair):
     v, p = pair
     if v in acc:
@@ -100,41 +52,6 @@ def reduceToMap(acc, pair):
     else:
         acc[v] = p
     return acc
-
-class DictDieDivide(DictDie):
-    @classmethod
-    def combine(cls, fn, *dice):
-        n = 2
-        while len(dice) > 1:
-            i = iter(dice)
-            pairs = zip(*[i]*n)
-            dice = list(map(lambda p: cls.combineAcross(fn, *p), pairs))
-            dice += list(pairs)
-        return dice[0]
-
-    @classmethod
-    def combineAcross(cls, fn, *dice):
-        getItems = lambda x: dict.items((
-            x if isinstance(x, cls)
-            else cls.c(x)
-        ).dict)
-        diceVals = map(getItems, dice)
-        cross = itertools.product(*diceVals)
-        transposed = map(
-            lambda perm: (
-                fn(tuple(map(lambda pair: pair[0], perm))),
-                prod(tuple(map(lambda pair: pair[1], perm)))
-            ),
-            cross
-        )
-        m = reduce(reduceToMap, transposed, dict())
-        return cls(*zip(*m.items()))
-
-class DictDieCache(DictDieDivide):
-    @classmethod
-    @functools.lru_cache()
-    def combineAcross(cls, fn, *dice):
-        return super(DictDieCache,DictDieCache).combineAcross(fn, *dice)
 
 class ArrayDie(Die):
     def __init__(self, val, prob):
@@ -147,9 +64,22 @@ class ArrayDie(Die):
         return type(self)(*zip(*m.items()))
     def __add__(self, d):
         return self.combine(np.add, self, d)
+    def avg(self):
+        return sum(self.prob * self.val)
     def pmf(self):
         return self.val, self.prob
+    def cmf(self, reverse=False):
+        reverse = not reverse
+        val = self.val
+        prob = self.prob
+        if reverse:
+            prob = reversed(prob)
+        prob = list(itertools.accumulate(prob))
+        if reverse:
+            prob =reversed(prob)
+        return list(val), list(prob)
     def pool(self, n):
+        assert(n > 0)
         return ArrayDicePool([self for n in range(n)])
     @classmethod
     def combine(cls, fn, *dice):
@@ -179,15 +109,14 @@ class ArrayDie(Die):
         v, p = pair
         if isinstance(v, cls):
             return reduce(reduceToMap, zip(v.val, (v.prob*p)), acc)
-            # scale
-            # add to acc
-            # cont
         else:
             return reduceToMap(acc, pair)
 
 class ArrayDicePool(DicePool):
     def best(self):
         return self.aggregate(np.maximum)
+    def worst(self):
+        return self.aggregate(np.minimum)
     def sum(self):
         return self.aggregate(np.add)
 
@@ -200,8 +129,12 @@ class ArrayDieDivide(ArrayDie):
         while len(dice) > 1:
             i = iter(dice)
             pairs = zip(*[i]*n)
+            if len(dice)%2 == 1:
+                extra = [dice[-1]]
+            else:
+                extra = []
             dice = list(map(lambda p: cls.combineAcross(fn, *p), pairs))
-            dice += list(pairs)
+            dice += extra
         return dice[0]
 
 class ArrayDieDivideCache(ArrayDieDivide):

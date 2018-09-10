@@ -27,9 +27,6 @@ tests = [
 ]
 
 impls = [
-    # (diceNp.DictDie, "dict"),
-    # (diceNp.DictDieDivide, "divide"),
-    # (diceNp.DictDieCache, "cache"),
     (diceNp.ArrayDie, "array"),
     (diceNp.ArrayDieDivide, "arrdiv"),
     (diceNp.ArrayDieDivideCache, "arrdiv$"),
