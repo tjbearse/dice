@@ -1,4 +1,3 @@
-import dice
 import diceNp
 import timeit
 import typing

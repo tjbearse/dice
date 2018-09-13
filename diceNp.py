@@ -55,6 +55,7 @@ def reduceToMap(acc, pair):
 
 class ArrayDie(Die):
     def __init__(self, val, prob):
+        assert(len(val) == len(prob))
         self.prob = np.array(prob)
         self.val = np.array(val)
     def map(self, fn):
@@ -121,7 +122,7 @@ class ArrayDie(Die):
     def reduceDieOrPairToMap(cls, acc, pair):
         v, p = pair
         if isinstance(v, cls):
-            return reduce(reduceToMap, zip(v.val, (v.prob*p)), acc)
+            return reduce(cls.reduceDieOrPairToMap, zip(v.val, (v.prob*p)), acc)
         else:
             return reduceToMap(acc, pair)
 

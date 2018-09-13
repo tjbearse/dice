@@ -4,6 +4,21 @@ import numpy.testing as npt
 import numpy as np
 from samples import getToHit, getDamage
 
+
+class state(object):
+    def __init__(self, a):
+        self.a = a
+    def __add__(self, b):
+        return state(self.a + b.a)
+    def __hash__(self):
+        return hash(self.a)
+    def __eq__(self, a):
+        return self.a.__eq__(a.a)
+    def __lt__(self, a):
+        return self.a.__lt__(a)
+    def __repr__(self):
+        return str(self.__hash__())
+
 class TestDicePackage(unittest.TestCase):
     def setUp(self):
        self.dice = diceNp.ArrayDie
@@ -74,16 +89,6 @@ class TestDiceMethods(TestDicePackage):
         self.assertArrEqual(x, [1,2,3,4])
         self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
 
-        """
-    def test_combineSingleArray(self):
-        self.dice.combine(
-            np.sum,
-            self.dice.d(20),
-            self.dice.d(20),
-            self.dice.d(20),
-            self.dice.d(20),
-        )
-        """
     def test_combineTwoArray(self):
         x,y = self.dice.combine(
             np.add,
@@ -147,6 +152,38 @@ class TestDiceMethods(TestDicePackage):
         x,y = c.pmf()
         self.assertArrEqual(x, [False, True])
         self.assertArrEqual(y, [.75, .25])
+
+    def test_combObj(self):
+
+        a = self.dice(
+            np.array([state(1), state(2)]),
+            np.array([.5, .5]),
+        )
+        b = self.dice(
+            np.array([state(3), state(4)]),
+            np.array([.5, .5]),
+        )
+        c = self.dice.combineElements(
+            lambda x,y: x+y,
+            a,
+            b
+        )
+        x,y = c.pmf()
+        self.assertArrEqual(x, [state(4), state(5), state(6)])
+        self.assertArrEqual(y, [.25, .5, .25])
+
+    def test_mapObj(self):
+        a = self.dice(
+            np.array([state(1), state(2), state(3)]),
+            np.array([1/3., 1/3., 1/3.]),
+        ).map(lambda r: {
+            1: state(11),
+            2: state(12),
+            3: state(12),
+            }[r.a])
+        x,y = a.pmf()
+        self.assertArrEqual(x, [state(11), state(12)])
+        self.assertArrFloatEqual(y, [1./3, 2./3])
 
 class TestDicePoolMethods(TestDicePackage):
     def test_add_pool(self):
