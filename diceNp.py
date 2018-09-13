@@ -81,20 +81,33 @@ class ArrayDie(Die):
     def pool(self, n):
         assert(n > 0)
         return ArrayDicePool([self for n in range(n)])
+
+    # fn recieves two 1d vectors with opposing shapes e.g. _ |  fn(vecA,vecB)
     @classmethod
     def combine(cls, fn, *dice):
         coaleseConst = lambda x: x if isinstance(x, cls) else cls.c(x)
         ensuredDice = list(map(coaleseConst, dice))
-        return reduce(lambda acc, d: cls.combineAcross(fn, acc, d), ensuredDice)
+        return reduce(lambda acc, d: cls._combineTwo(fn, acc, d), ensuredDice)
 
-    # this is only performant across two dice, might fix it to that
+    # fn recieves a pair e.g. fn(a,b)
     @classmethod
-    def combineAcross(cls, fn, *dice):
-        n = len(dice)
-        vals = [cls.rotateShape(d.val, i, n) for i, d in enumerate(dice)]
-        probs = [cls.rotateShape(d.prob, i, n) for i, d in enumerate(dice)]
-        valMatrix = reduce(fn, vals)
-        probsMatrix = reduce(np.multiply, probs)
+    def combineElements(cls, fn, *dice):
+        return cls.combine(np.vectorize(fn), *dice)
+
+    # fn recieves a permutation list i.e. fn([1,2])
+    @classmethod
+    def combinePerms(cls, fn, *dice):
+        return cls.combine(np.vectorize(lambda x,y: fn((x,y))), *dice)
+
+    @classmethod
+    def _combineTwo(cls, fn, a,b):
+        aVal = a.val.reshape((-1, 1))
+        bVal = b.val.reshape((1, -1))
+        valMatrix = fn(aVal, bVal)
+
+        aProb = a.prob.reshape((-1, 1))
+        bProb = b.prob.reshape((1, -1))
+        probsMatrix = np.multiply(aProb, bProb)
         m = reduce(reduceToMap, zip(valMatrix.flat, probsMatrix.flat), dict())
         return cls(*zip(*m.items()))
 
@@ -133,12 +146,12 @@ class ArrayDieDivide(ArrayDie):
                 extra = [dice[-1]]
             else:
                 extra = []
-            dice = list(map(lambda p: cls.combineAcross(fn, *p), pairs))
+            dice = list(map(lambda p: cls._combineTwo(fn, *p), pairs))
             dice += extra
         return dice[0]
 
 class ArrayDieDivideCache(ArrayDieDivide):
     @classmethod
     @functools.lru_cache()
-    def combineAcross(cls, fn, *dice):
-        return super(ArrayDieDivideCache,ArrayDieDivideCache).combineAcross(fn, *dice)
+    def _combineTwo(cls, fn, a, b):
+        return super(ArrayDieDivideCache,ArrayDieDivideCache)._combineTwo(fn, a,b)

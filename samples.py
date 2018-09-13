@@ -99,38 +99,36 @@ def highPoolTest():
     return
 
 def grapple2d():
-    grapple = lambda me, opMod: (
-        dice.combine(
-            np.greater,
-            #my roll
-            me,
-            #their roll
-            dice.d(20) + opMod
-        )
-        # dice.d(20).pool(2).best().map(getToHit(ac, 7)).map(getDamage(dice.d(10), 6)).pool(2*(n-1))
+    stratNames = ("Straight")
+    rollToDamage = lambda roll, ac: roll.map(getToHit(ac, 7)).map(getDamage(dice.d(10), 4))
+    grapple = lambda opMod: dice.combine(
+        np.greater,
+        dice.d(20) + dice.c(7),
+        dice.d(20) + dice.c(opMod)
     )
-    myModVals = ("Straight", "Rage") #, "prone S", "prone R")
+    stratList = (
+        lambda ac, _, r: rollToDamage(dice.d(20)).pool(2*r).sum().avg(),
+    )
     opModVals = range(0,8)
-    reg = np.array([
+    opAcVals = range(12,22,3)
+    rounds = 3
+    sets = np.array([
         [
-            dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod).avg(),
-            dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod).avg(),
-            # dice.combine(np.all,
-            #              dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod),
-            #              dice.combine(np.greater, dice.d(20) + 7, dice.d(20) + opMod),
-            # ),
-            # dice.combine(np.all,
-            #     dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod),
-            #     dice.combine(np.greater, dice.d(20).adv() + 7, dice.d(20) + opMod),
-            # )
+            [
+                strat(ac, opMod, rounds)
+                for opMod in opModVals
+            ]
+            for ac in opAcVals
         ]
-        for opMod in opModVals
+        for strat in stratList
     ])
-    # vmin, vmax  = np.amin(combined), np.amax(combined)
+    vmin, vmax  = np.amin(sets), np.amax(sets)
 
-    fig, (axReg) = plt.subplots(1, 1, figsize=(8, 6))
-    shared = dict(xlabel="my modifier", ylabel="their modifier", fmt="{:2.1%}")
-    im = matPlotTable("Straight", reg, myModVals, opModVals, ax=axReg, **shared)
+    fig, axes = plt.subplots(len(sets)+1, 1, figsize=(8, 6))
+    shared = dict(xlabel="ModValues", ylabel="AC", fmt="{:.0F}")
+    for title, s, a in zip(stratNames, sets, (axes)):
+        im = matPlotTable(title, s, opModVals, opAcVals, ax=a, **shared)
+    fig.suptitle("Strategy damages over {} rounds".format(rounds))
     fig.tight_layout()
     # cbar_ax = fig.add_axes([0.8, 0.09, 0.05, 0.85]) # L B W H
     # fig.colorbar(im, cax=cbar_ax)
@@ -165,7 +163,9 @@ def matPlotTable(title, data, x, y,
     return im
 
 if __name__ == "__main__":
-    #hammerVsAxe()
-    #hammerAvg()
+    hammerVsAxe()
+    plt.show()
+    hammerAvg()
+    plt.show()
     grapple2d()
     plt.show()

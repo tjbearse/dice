@@ -74,6 +74,56 @@ class TestDiceMethods(TestDicePackage):
         self.assertArrEqual(x, [1,2,3,4])
         self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
 
+        """
+    def test_combineSingleArray(self):
+        self.dice.combine(
+            np.sum,
+            self.dice.d(20),
+            self.dice.d(20),
+            self.dice.d(20),
+            self.dice.d(20),
+        )
+        """
+    def test_combineTwoArray(self):
+        x,y = self.dice.combine(
+            np.add,
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+        ).pmf()
+        self.assertArrEqual(x, [4,5,6,7,8])
+        # self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
+        self.assertArrFloatEqual(y, np.array([1, 4, 6, 4, 1])/16.)
+        #  1 3 3 1
+        #L 0 1 3 3 1
+        #U 1 3 3 1 0
+        #  1 4 6 4 1
+        
+    def test_combineElements(self):
+        x,y = self.dice.combineElements(
+            lambda x,y: x.__add__(y),
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+        ).pmf()
+        self.assertArrEqual(x, [4,5,6,7,8])
+        # self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
+        self.assertArrFloatEqual(y, np.array([1, 4, 6, 4, 1])/16.)
+
+    def test_combinePairList(self):
+        x,y = self.dice.combinePerms(
+            sum,
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+            self.dice.d(2),
+        ).pmf()
+        self.assertArrEqual(x, [4,5,6,7,8])
+        # self.assertArrFloatEqual(y, [1./3, 1./3, 1./6, 1./6])
+        self.assertArrFloatEqual(y, np.array([1, 4, 6, 4, 1])/16.)
+
     """
     def test_guantlet(self):
         for i in range(3):
