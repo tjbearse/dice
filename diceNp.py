@@ -2,6 +2,7 @@ import numpy as np
 import itertools
 from fractions import Fraction
 from functools import reduce
+from collections import defaultdict
 import functools
 import operator
 import copy
