@@ -3,7 +3,7 @@ import experiment
 
 
 diceImpl = experiment.Experiment
-poolSize = 30
+poolSize = 10
 
 profiles = [
     # ("best2", 'diceImpl.d(20).pool({}).best()'.format(2)),
